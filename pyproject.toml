@@ -35,7 +35,7 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/richkdev/richyplayer"
-Documentation = "https://github.com/richkdev/richyplayer/blob/main/docs"
+Documentation = "https://github.com/richkdev/richyplayer/blob/main/README.md"
 Repository = "https://github.com/richkdev/richyplayer.git"
 "Bug Tracker" = "https://github.com/richkdev/richyplayer/issues"
-Changelog = "https://github.com/richkdev/richyplayer/blob/master/CHANGELOG.md"
+Changelog = "https://github.com/richkdev/richyplayer/blob/main/CHANGELOG.md"
