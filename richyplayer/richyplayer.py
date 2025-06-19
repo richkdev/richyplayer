@@ -37,8 +37,8 @@ class VideoPlayer:
         self.width: int
         self.height: int
         self.FPS: int
-        self.currentFrame: int
-        self.totalFrames: int
+        self.current_frame: int
+        self.total_frames: int
 
         self.path: Path
         self.tmp_dir: Path
@@ -76,7 +76,7 @@ class VideoPlayer:
         self.width = int(self.video.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.height = int(self.video.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.FPS = int(self.video.get(cv2.CAP_PROP_FPS))
-        self.totalFrames = int(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
+        self.total_frames = int(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
 
         if self.has_audio:
             if self.override_audio_source is None:
@@ -155,12 +155,12 @@ class VideoPlayer:
         return Path(url).as_posix().replace("https", "http").replace(":/", "://")
 
     def set_frame(self, frameNumber: int) -> None:
-        self.currentFrame = int(self.video.set(
+        self.current_frame = int(self.video.set(
             cv2.CAP_PROP_POS_FRAMES, frameNumber))
 
     def get_frame(self) -> pygame.Surface:
-        self.currentFrame = int(self.video.get(cv2.CAP_PROP_POS_FRAMES))
-        self.totalFrames = int(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
+        self.current_frame = int(self.video.get(cv2.CAP_PROP_POS_FRAMES))
+        self.total_frames = int(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
         status, video_frame = self.video.read()
 
         if not IS_WEB and not status:
