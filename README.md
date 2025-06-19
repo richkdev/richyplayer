@@ -1,8 +1,17 @@
 # richyplayer
 
-a video player library for pygame(-ce), works on native and web
+a video player library for pygame(-ce), works on desktop and web
 
-remember to add PEP 723 header to the top of your file for `pygbag`, like this:
+currently supports:
+
+* desktop (windows, linux, raspberry pi os, etc)
+* web (currently only pygbag, working on pyodide & pyscript compat)
+
+## installation
+
+put this in your cli: `pip install git+https://github.com/richkdev/richyplayer.git` then just do `import richyplayer`
+
+## usage
 
 ```python
 # /// script
@@ -21,3 +30,9 @@ async def main():
 
 asyncio.run(main())
 ```
+
+PEP 723 header at the top of the file is for `pygbag`
+
+## license
+
+MIT
