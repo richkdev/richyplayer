@@ -40,7 +40,7 @@ async def main():
         override_audio_source=None,
     )
 
-    screen = pygame.display.set_mode((800, 600))
+    screen = pygame.display.set_mode((1000, 600))
     clock = pygame.Clock()
 
     running = True
