@@ -11,6 +11,8 @@ import sys
 import pygame
 import asyncio
 
+import pygame.examples
+
 import richyplayer
 
 
