@@ -11,7 +11,6 @@ import sys
 import pygame
 import asyncio
 
-import pygame.examples
 
 import richyplayer
 
@@ -28,10 +27,10 @@ def newPath(relPath: str) -> str:
 async def main():
     player = richyplayer.VideoPlayer()
     await player.open(
-        path=newPath("richyplayer/demo/assets/video.mp4"),
+        path=newPath("richyplayer/examples/demo/assets/video.mp4"),
         tmp_dir=newPath("/tmp/" if richyplayer.IS_WEB else "tmp/"),
         has_audio=True,
-        override_audio_source=newPath("richyplayer/demo/assets/override.mp3"),
+        override_audio_source=newPath("richyplayer/examples/demo/assets/override.mp3"),
     )
 
     player2 = richyplayer.VideoPlayer()
