@@ -14,7 +14,9 @@ from pathlib import Path
 from warnings import warn
 
 IS_WEB = sys.platform in ('emscripten', 'wasi')
-EMPTY_AUDIO_PATH = "https://github.com/pygame-web/pygbag/raw/refs/heads/main/static/empty.ogg"
+IS_PYODIDE = 'pyodide' in sys.modules
+
+EMPTY_AUDIO_PATH = "https://rawcdn.githack.com/pygame-web/pygbag/refs/heads/main/static/empty.ogg"
 
 if not pygame.mixer.get_init():
     pygame.mixer.pre_init(frequency=44100, size=16, channels=2, buffer=512)
@@ -33,7 +35,7 @@ class VideoPlayer:
     def __init__(self) -> None:
         self.video = cv2.VideoCapture()
         self.channel: pygame.Channel = pygame.mixer.find_channel(True)
-        self.audio: pygame.Sound
+        self.audio: pygame.mixer.Sound
         self.width: int
         self.height: int
         self.FPS: int
@@ -60,8 +62,7 @@ class VideoPlayer:
         self.path = Path(path)
         self.tmp_dir = Path(tmp_dir)
         self.has_audio = has_audio
-        self.override_audio_source = Path(
-            override_audio_source) if override_audio_source is not None else None
+        self.override_audio_source = Path(override_audio_source) if override_audio_source != None else None
         self.remove_dir = remove_dir
 
         if not IS_WEB and not self.tmp_dir.exists():
@@ -79,7 +80,7 @@ class VideoPlayer:
         self.total_frames = int(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
 
         if self.has_audio:
-            if self.override_audio_source is None:
+            if self.override_audio_source == None:
                 # use the original video's audio
                 if not IS_WEB:
                     # file is local
@@ -92,9 +93,9 @@ class VideoPlayer:
                             tmp_audio = await self._fetch(EMPTY_AUDIO_PATH, self.tmp_dir)
                         clip.close()
 
-                    self.audio = pygame.Sound(tmp_audio)
+                    self.audio = pygame.mixer.Sound(tmp_audio)
                 else:
-                    self.audio = pygame.Sound(
+                    self.audio = pygame.mixer.Sound(
                         await self._fetch(EMPTY_AUDIO_PATH, self.tmp_dir)
                     )
                     warn(
@@ -104,12 +105,12 @@ class VideoPlayer:
             elif isinstance(self.override_audio_source, Path):
                 if self._isURL(self.override_audio_source):
                     # check if audio is a URL
-                    self.audio = pygame.Sound(
+                    self.audio = pygame.mixer.Sound(
                         await self._fetch(self.override_audio_source, self.tmp_dir)
                     )
                 else:
                     # if not a URL and is local file
-                    self.audio = pygame.Sound(self.override_audio_source)
+                    self.audio = pygame.mixer.Sound(self.override_audio_source)
             else:
                 raise TypeError
 
@@ -132,16 +133,16 @@ class VideoPlayer:
                 # slightly modified ver of https://stackoverflow.com/a/76628270
                 response = get(url=url, stream=True)
                 response.raise_for_status()
-                # file_size = int(response.headers['Content-Length'])
-                # downloaded = 0
                 with open(tmp_path, "wb") as data:
                     for chunk in response.iter_content(chunk_size=1024):
-                        # downloaded += len(chunk)
-                        # print(f"Downloaded {downloaded}/{file_size} bytes")
                         data.write(chunk)
             else:
-                async with platform.fopen(url, "rb") as data:  # type: ignore
-                    data.rename_to(tmp_path)
+                if not IS_PYODIDE:
+                    async with platform.fopen(url, "rb") as data:
+                        data.rename_to(tmp_path)
+                else:
+                    # work in progress! will be configured in index.html via javascript using pyodide
+                    pass
             return str(tmp_path)
         else:
             raise FileNotFoundError("File is not a URL.")
@@ -155,15 +156,14 @@ class VideoPlayer:
         return Path(url).as_posix().replace("https", "http").replace(":/", "://")
 
     def set_frame(self, frameNumber: int) -> None:
-        self.current_frame = int(self.video.set(
-            cv2.CAP_PROP_POS_FRAMES, frameNumber))
+        self.current_frame = int(self.video.set(cv2.CAP_PROP_POS_FRAMES, frameNumber))
 
     def get_frame(self) -> pygame.Surface:
         self.current_frame = int(self.video.get(cv2.CAP_PROP_POS_FRAMES))
         self.total_frames = int(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
         status, video_frame = self.video.read()
 
-        if not IS_WEB and not status:
+        if (not IS_WEB and not status) or isinstance(video_frame, type(None)):
             return pygame.Surface((self.width, self.height))
         else:
             return pygame.image.frombuffer(
