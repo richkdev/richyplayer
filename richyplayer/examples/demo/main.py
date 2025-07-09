@@ -27,10 +27,10 @@ def newPath(relPath: str) -> str:
 async def main():
     player = richyplayer.VideoPlayer()
     await player.open(
-        path=newPath("richyplayer/examples/demo/assets/video.mp4"),
+        path=newPath("assets/video.mp4") if richyplayer.IS_WEB else newPath("richyplayer/examples/demo/assets/video.mp4"),
         tmp_dir=newPath("/tmp/" if richyplayer.IS_WEB else "tmp/"),
         has_audio=True,
-        override_audio_source=newPath("richyplayer/examples/demo/assets/override.mp3"),
+        override_audio_source=newPath("assets/override.mp3") if richyplayer.IS_WEB else newPath("richyplayer/examples/demo/assets/override.mp3"),
     )
 
     player2 = richyplayer.VideoPlayer()
