@@ -24,8 +24,11 @@ if not pygame.mixer.get_init():
     pygame.mixer.set_num_channels(64)
 
 if IS_WEB:
-    pygame.mixer.SoundPatch()  # type: ignore
-    import platform
+    if not IS_PYODIDE:
+        pygame.mixer.SoundPatch()  # type: ignore
+        import platform
+    else:
+        pass
 else:
     from moviepy import VideoFileClip
     from requests import get
@@ -56,13 +59,13 @@ class VideoPlayer:
         path: Path | str,
         tmp_dir: Path | str,
         has_audio: bool,
-        override_audio_source: Path | str | None,
+        override_audio_source: Path | str | None = None,
         remove_dir: bool = True
     ) -> None:
         self.path = Path(path)
         self.tmp_dir = Path(tmp_dir)
         self.has_audio = has_audio
-        self.override_audio_source = Path(override_audio_source) if override_audio_source != None else None
+        self.override_audio_source = Path(override_audio_source) if override_audio_source is not None else None
         self.remove_dir = remove_dir
 
         if not IS_WEB and not self.tmp_dir.exists():
@@ -80,7 +83,7 @@ class VideoPlayer:
         self.total_frames = int(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
 
         if self.has_audio:
-            if self.override_audio_source == None:
+            if self.override_audio_source is None:
                 # use the original video's audio
                 if not IS_WEB:
                     # file is local
@@ -95,13 +98,16 @@ class VideoPlayer:
 
                     self.audio = pygame.mixer.Sound(tmp_audio)
                 else:
-                    self.audio = pygame.mixer.Sound(
-                        await self._fetch(EMPTY_AUDIO_PATH, self.tmp_dir)
-                    )
-                    warn(
-                        message="Haven't figured out how to extract audio from video on pygbag, sorry. To play audio, you must manually set override_audio_source as the desired path.",
-                        category=UserWarning
-                    )
+                    if not IS_PYODIDE:
+                        self.audio = pygame.mixer.Sound(
+                            await self._fetch(EMPTY_AUDIO_PATH, self.tmp_dir)
+                        )
+                        warn(
+                            message="Haven't figured out how to extract audio from video on pygbag, sorry. To play audio, you must manually set override_audio_source as the desired path.",
+                            category=UserWarning
+                        )
+                    else:
+                        raise NotImplementedError("Pyodide compatibility has not been configured yet in this version.")
             elif isinstance(self.override_audio_source, Path):
                 if self._isURL(self.override_audio_source):
                     # check if audio is a URL
@@ -113,6 +119,11 @@ class VideoPlayer:
                     self.audio = pygame.mixer.Sound(self.override_audio_source)
             else:
                 raise TypeError
+        else:
+            # plays empty audio so that it doesnt return an error when trying to play it
+            self.audio = pygame.mixer.Sound(
+                await self._fetch(EMPTY_AUDIO_PATH, self.tmp_dir)
+            )
 
         if self.remove_dir:
             try:

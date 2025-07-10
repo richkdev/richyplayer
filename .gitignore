@@ -10,4 +10,5 @@ venv/
 .git/
 
 tmp/
+*/tmp/
 richyplayer/examples/*/richyplayer.py
