@@ -25,7 +25,7 @@ if not pygame.mixer.get_init():
 
 if IS_WEB:
     if not IS_PYODIDE:
-        pygame.mixer.SoundPatch()  # type: ignore
+        # pygame.mixer.SoundPatch()  # type: ignore
         import platform
     else:
         pass
