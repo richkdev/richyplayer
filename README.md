@@ -13,25 +13,7 @@ put this in your cli: `pip install git+https://github.com/richkdev/richyplayer.g
 
 ## usage
 
-```python
-# /// script
-# dependencies = [
-#   'numpy',
-#   'opencv-python',
-#   'pygame-ce'
-# ]
-# ///
-
-import richyplayer
-
-async def main():
-    # code here
-    ...
-
-asyncio.run(main())
-```
-
-PEP 723 header at the top of the file is for `pygbag`
+check `richyplayer/examples/` for examples on how to use the `richyplayer`
 
 ## license
 
