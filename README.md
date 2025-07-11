@@ -11,6 +11,8 @@ currently supports:
 
 put this in your cli: `pip install git+https://github.com/richkdev/richyplayer.git` then just do `import richyplayer`
 
+for pygbag, put the entire `richyplayer` folder into the the root folder as your main.py
+
 ## usage
 
 check `richyplayer/examples/` for examples on how to use the `richyplayer`
