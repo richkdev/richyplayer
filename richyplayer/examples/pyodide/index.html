@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>pyodide</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .videoPlayer {
+            width: 480px;
+            height: 480px;
+            border: 1px black solid;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>playing video test</h1>
+
+    <h2>pygame-ce + opencv-python + ffmpeg + pyodide on canvas element (video is at a slower FPS, override audio applied)</h2>
+    <canvas class="videoPlayer" id="canvas"></canvas>
+
+    <h2>HTMLVideoElement (intended video result, no override audio applied)</h2>
+    <video playsinline autoplay muted class="videoPlayer">
+        <source src="assets/video.mp4" type="video/mp4">
+    </video>
+</body>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
+<script>
+    (async () => {
+        // pygame-ce got temporarily removed in 0.28.0 so im using 0.27.7 
+        const pyodide = await loadPyodide();
+
+        let canvas = document.getElementById("canvas");
+        pyodide.canvas.setCanvas2D(canvas);
+
+        await pyodide.loadPackage([
+            "numpy",
+            "opencv-python",
+            "pygame-ce",
+            "urllib3"
+        ]);
+
+        pyodide.globals.set("baseURL", location.href.substring(0, location.href.lastIndexOf("/")) + "/");
+
+        /**
+        +  * @param {string} path
+        +  * @param {string} new_path
+        +  * @param {string} file_encoding
+        +  * @return {boolean}
+        +  */
+        async function fetch_and_move(path, new_path, file_encoding) {
+            let res = await fetch(path);
+            let data = await res.bytes();
+
+            pyodide.FS.writeFile(new_path, data, { encoding: file_encoding });
+
+            return pyodide.runPython(`
+                from pathlib import Path
+                print("${new_path}", Path("${new_path}").exists())
+            `);
+        }
+
+        await fetch_and_move("assets/video.mp4", "video.mp4", "binary");
+
+        await fetch_and_move("richyplayer.py", "richyplayer.py", "utf8");
+
+        const main = await fetch("main.py");
+        await pyodide.runPythonAsync(await main.text());
+
+        window.pyodide = pyodide;
+    })();
+</script>
+
+</html>

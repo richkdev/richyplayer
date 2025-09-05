@@ -10,10 +10,13 @@ import os
 import sys
 import pygame
 import cv2
+import platform
 from pathlib import Path
 from warnings import warn
 
+IS_DESKTOP = platform.system() in ['Windows', 'Linux', 'Darwin']
 IS_WEB = sys.platform in ('emscripten', 'wasi')
+IS_PYGBAG = os.environ['PYGBAG'] == '1'
 IS_PYODIDE = 'pyodide' in sys.modules
 
 EMPTY_AUDIO_PATH = "https://rawcdn.githack.com/pygame-web/pygbag/refs/heads/main/static/empty.ogg"
@@ -24,11 +27,12 @@ if not pygame.mixer.get_init():
     pygame.mixer.set_num_channels(64)
 
 if IS_WEB:
-    if not IS_PYODIDE:
-        # pygame.mixer.SoundPatch()  # type: ignore
-        import platform
-    else:
-        pass
+    if IS_PYODIDE:
+        import urllib3
+        poolmgr = urllib3.PoolManager()
+
+        from pyodide.code import run_js # type: ignore
+        audio_extensions = ["mp3"] # will add more later
 else:
     from moviepy import VideoFileClip
     from requests import get
@@ -50,6 +54,8 @@ class VideoPlayer:
         self.has_audio: bool
         self.override_audio_source: Path | None
         self.remove_dir: bool
+
+        self.audio_data: str | bytes = b""
 
     def __repr__(self) -> str:
         return f"{__name__}.{type(self).__name__}(path=\"{self.path}\", has_audio={self.has_audio}, override_audio_source={self.override_audio_source})"
@@ -93,37 +99,34 @@ class VideoPlayer:
                         if clip.audio is not None:
                             clip.audio.write_audiofile(tmp_audio)
                         else:
-                            tmp_audio = await self._fetch(EMPTY_AUDIO_PATH, self.tmp_dir)
+                            tmp_audio = await self.fetch(EMPTY_AUDIO_PATH, self.tmp_dir)
                         clip.close()
 
-                    self.audio = pygame.mixer.Sound(tmp_audio)
+                    self.audio_data = tmp_audio
                 else:
                     if not IS_PYODIDE:
-                        self.audio = pygame.mixer.Sound(
-                            await self._fetch(EMPTY_AUDIO_PATH, self.tmp_dir)
-                        )
+                        self.audio_data = await self.fetch(EMPTY_AUDIO_PATH, self.tmp_dir)
                         warn(
                             message="Haven't figured out how to extract audio from video on pygbag, sorry. To play audio, you must manually set override_audio_source as the desired path.",
                             category=UserWarning
                         )
                     else:
-                        raise NotImplementedError("Pyodide compatibility has not been configured yet in this version.")
+                        raise NotImplementedError("Haven't figured out how to extract audio from video on pygbag, sorry. To play audio, you must manually set override_audio_source as the desired path.")
             elif isinstance(self.override_audio_source, Path):
                 if self._isURL(self.override_audio_source):
                     # check if audio is a URL
-                    self.audio = pygame.mixer.Sound(
-                        await self._fetch(self.override_audio_source, self.tmp_dir)
-                    )
+                    self.audio_data = await self.fetch(self.override_audio_source, self.tmp_dir)
                 else:
                     # if not a URL and is local file
-                    self.audio = pygame.mixer.Sound(self.override_audio_source)
+                    self.audio_data = str(self.override_audio_source)
             else:
                 raise TypeError
         else:
             # plays empty audio so that it doesnt return an error when trying to play it
-            self.audio = pygame.mixer.Sound(
-                await self._fetch(EMPTY_AUDIO_PATH, self.tmp_dir)
-            )
+            self.audio_data = await self.fetch(EMPTY_AUDIO_PATH, self.tmp_dir)
+
+        if not IS_PYODIDE:
+            self.audio = pygame.mixer.Sound(self.audio_data)
 
         if self.remove_dir:
             try:
@@ -131,11 +134,11 @@ class VideoPlayer:
             except OSError:
                 pass
 
-    async def _fetch(
+    async def fetch(
         self,
         url: Path | str,
         tmp_dir: Path,
-    ) -> str:
+    ) -> str | bytes:
         url = self._urlify(url)
         tmp_path = tmp_dir.joinpath(Path(url).name)
 
@@ -152,11 +155,22 @@ class VideoPlayer:
                     async with platform.fopen(url, "rb") as data:
                         data.rename_to(tmp_path)
                 else:
-                    # work in progress! will be configured in index.html via javascript using pyodide
-                    pass
+                    return self._fetch_pyodide(url)
             return str(tmp_path)
         else:
             raise FileNotFoundError("File is not a URL.")
+
+    @staticmethod
+    def _fetch_pyodide(path: str) -> bytes:
+        resp = poolmgr.request("GET", path, preload_content=False)
+        if resp.status == 200:
+            data = resp.read()
+            print(f"Data at {path} downloaded successfully.")
+        else:
+            data = b""
+            print(f"Failed to download data at {path}. Status code: {resp.status}")
+        resp.release_conn()
+        return data
 
     @staticmethod
     def _isURL(path: Path | str) -> bool:
@@ -166,8 +180,8 @@ class VideoPlayer:
     def _urlify(url: Path | str) -> str:
         return Path(url).as_posix().replace("https", "http").replace(":/", "://")
 
-    def set_frame(self, frameNumber: int) -> None:
-        self.current_frame = int(self.video.set(cv2.CAP_PROP_POS_FRAMES, frameNumber))
+    def set_frame(self, frame_no: int) -> None:
+        self.current_frame = int(self.video.set(cv2.CAP_PROP_POS_FRAMES, frame_no))
 
     def get_frame(self) -> pygame.Surface:
         self.current_frame = int(self.video.get(cv2.CAP_PROP_POS_FRAMES))
@@ -184,7 +198,19 @@ class VideoPlayer:
             )
 
     def play_audio(self, loops: int = 0, maxtime: int = 0, fade_ms: int = 0) -> None:
-        self.channel.play(self.audio, loops, maxtime, fade_ms)
+        if not IS_PYODIDE:
+            self.channel.play(self.audio, loops, maxtime, fade_ms)
+        else:
+            if isinstance(self.override_audio_source, Path):
+                for ex in audio_extensions:
+                    if self.override_audio_source.stem+"."+ex == self.override_audio_source.name:
+                        # will fail if there hasnt been any user interaction after loading
+                        run_js(f"""
+                            const audioBlob = new Blob([new Uint8Array({list(self.audio_data)})], {{ type: 'audio/{ex}' }});
+                            const audioUrl = URL.createObjectURL(audioBlob);
+                            const audio = new Audio(audioUrl);
+                            audio.play();
+                        """)
 
     def pause_audio(self) -> None:
         self.channel.pause()
