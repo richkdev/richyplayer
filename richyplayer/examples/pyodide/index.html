@@ -18,11 +18,11 @@
 <body>
     <h1>playing video test</h1>
 
-    <h2>pygame-ce + opencv-python + ffmpeg + pyodide on canvas element (video is at a slower FPS, override audio applied)</h2>
+    <h2>pyodide on canvas element (slower FPS, override audio applied)</h2>
     <canvas class="videoPlayer" id="canvas"></canvas>
 
-    <h2>HTMLVideoElement (intended video result, no override audio applied)</h2>
-    <video playsinline autoplay muted class="videoPlayer">
+    <h2>HTMLVideoElement (intended result, no override audio applied)</h2>
+    <video controls class="videoPlayer">
         <source src="assets/video.mp4" type="video/mp4">
     </video>
 </body>
