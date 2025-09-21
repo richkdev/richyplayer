@@ -3,5 +3,6 @@ pygame-ce>=2.4.1
 numpy~=2.0.2
 opencv-python~=4.10.0.84
 urllib3~=2.2.3
+requests~=2.31.0
 moviepy>=2.2.1
 pygbag>=0.9.2
