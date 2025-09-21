@@ -1,17 +1,19 @@
 [build-system]
-requires = ["setuptools >= 77.0.3"]
+requires = ["setuptools>=77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "richyplayer"
 version = "1.0.0"
 dependencies = [
-  "pygame-ce>=2.5.3",
-  "numpy>=2.2.3",
-  "opencv-python>=4.11.0.86",
-  "pygbag>=0.9.2",
+  "pygame-ce>=2.4.1",
+  "numpy~=2.0.2",
+  "opencv-python~=4.10.0.84",
+  "urllib3~=2.2.3",
+  "moviepy>=2.2.1",
+  "pygbag>=0.9.2"
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.9"
 authors = [
   {name = "Richmond Kleinson"},
 ]
@@ -27,15 +29,15 @@ classifiers = [
   #   3 - Alpha
   #   4 - Beta
   #   5 - Production/Stable
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
-  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.9",
 ]
 
 [project.urls]
 Homepage = "https://github.com/richkdev/richyplayer"
 Documentation = "https://github.com/richkdev/richyplayer/blob/main/README.md"
-Repository = "https://github.com/richkdev/richyplayer.git"
+Repository = "https://github.com/richkdev/richyplayer"
 "Bug Tracker" = "https://github.com/richkdev/richyplayer/issues"
-Changelog = "https://github.com/richkdev/richyplayer/blob/main/CHANGELOG.md"
+Changelog = "https://github.com/richkdev/richyplayer/blob/main/README.md"
