@@ -14,25 +14,28 @@ import platform
 from pathlib import Path
 from warnings import warn
 
-IS_DESKTOP = platform.system() in ['Windows', 'Linux', 'Darwin']
-IS_WEB = sys.platform in ('emscripten', 'wasi')
-IS_PYGBAG = os.environ['PYGBAG'] == '1'
-IS_PYODIDE = 'pyodide' in sys.modules
+IS_WEB: bool = sys.platform in ('emscripten', 'wasi')
+IS_DESKTOP: bool = not IS_WEB
+IS_PYGBAG: bool = os.getenv('PYGBAG') == '1'
+IS_PYODIDE: bool = 'pyodide' in sys.modules # includes pyscript since they use pyodide as well
+IS_PYSCRIPT: bool = 'pyscript' in sys.modules
 
-EMPTY_AUDIO_PATH = "https://rawcdn.githack.com/pygame-web/pygbag/refs/heads/main/static/empty.ogg"
-
-if not pygame.mixer.get_init():
-    pygame.mixer.pre_init(frequency=44100, size=16, channels=2, buffer=512)
-    pygame.mixer.init()
-    pygame.mixer.set_num_channels(64)
+AUDIO_EXTENSIONS: list[str] = ["mp3", "ogg", "wav"]
+EMPTY_AUDIO_PATH: str = "https://rawcdn.githack.com/richkdev/richyplayer/tree/main/richyplayer/assets/empty.ogg" # TODO: make it so that only web platforms will download from the repo, while non-web will use local copy
 
 if IS_WEB:
+    if IS_PYGBAG and not pygame.mixer.get_init():
+        if False:
+            # this is temporary, due to the snippet below not functioning properly on latest pygbag
+            pygame.mixer.pre_init(frequency=44100, size=16, channels=2, buffer=512)
+            pygame.mixer.init()
+            pygame.mixer.set_num_channels(64)
+
     if IS_PYODIDE:
         import urllib3
-        poolmgr = urllib3.PoolManager()
+        POOLMGR = urllib3.PoolManager()
 
-        from pyodide.code import run_js # type: ignore
-        audio_extensions = ["mp3"] # will add more later
+        from pyodide.code import run_js  # type: ignore
 else:
     from moviepy import VideoFileClip
     from requests import get
@@ -78,7 +81,7 @@ class VideoPlayer:
             os.makedirs(self.tmp_dir, exist_ok=True)
 
         if self._isURL(self.path):
-            tmp_video = await self._fetch(self.path, self.tmp_dir)
+            tmp_video = await self.fetch(self.path, self.tmp_dir)
             self.video.open(tmp_video)
         else:
             self.video.open(str(self.path))
@@ -104,14 +107,16 @@ class VideoPlayer:
 
                     self.audio_data = tmp_audio
                 else:
-                    if not IS_PYODIDE:
+                    if IS_PYODIDE:
+                        raise NotImplementedError(
+                            "Haven't figured out how to extract audio from video on Pyodide/PyScript, sorry. To play audio, you must manually set override_audio_source as the desired path."
+                        )
+                    else:
                         self.audio_data = await self.fetch(EMPTY_AUDIO_PATH, self.tmp_dir)
                         warn(
                             message="Haven't figured out how to extract audio from video on pygbag, sorry. To play audio, you must manually set override_audio_source as the desired path.",
                             category=UserWarning
                         )
-                    else:
-                        raise NotImplementedError("Haven't figured out how to extract audio from video on pygbag, sorry. To play audio, you must manually set override_audio_source as the desired path.")
             elif isinstance(self.override_audio_source, Path):
                 if self._isURL(self.override_audio_source):
                     # check if audio is a URL
@@ -152,7 +157,7 @@ class VideoPlayer:
                         data.write(chunk)
             else:
                 if not IS_PYODIDE:
-                    async with platform.fopen(url, "rb") as data:
+                    async with platform.fopen(url, "rb") as data: # type: ignore
                         data.rename_to(tmp_path)
                 else:
                     return self._fetch_pyodide(url)
@@ -162,7 +167,7 @@ class VideoPlayer:
 
     @staticmethod
     def _fetch_pyodide(path: str) -> bytes:
-        resp = poolmgr.request("GET", path, preload_content=False)
+        resp = POOLMGR.request("GET", path, preload_content=False)
         if resp.status == 200:
             data = resp.read()
             print(f"Data at {path} downloaded successfully.")
@@ -202,7 +207,7 @@ class VideoPlayer:
             self.channel.play(self.audio, loops, maxtime, fade_ms)
         else:
             if isinstance(self.override_audio_source, Path):
-                for ex in audio_extensions:
+                for ex in AUDIO_EXTENSIONS:
                     if self.override_audio_source.stem+"."+ex == self.override_audio_source.name:
                         # will fail if there hasnt been any user interaction after loading
                         run_js(f"""

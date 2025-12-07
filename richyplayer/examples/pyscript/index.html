@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>pyscript</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <link rel="stylesheet" href="https://pyscript.net/releases/2025.7.3/core.css">
+    <script type="module" src="https://pyscript.net/releases/2025.7.3/core.js"></script>
+</head>
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>pyodide</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .videoPlayer {
+            width: 480px;
+            height: 480px;
+            border: 1px black solid;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>playing video test</h1>
+
+    <h2>pyscript on canvas element (video is at a slower FPS, override audio applied)</h2>
+    <canvas class="videoPlayer" id="canvas"></canvas>
+    <script type="py-game" src="main.py" config="pyscript.toml"></script>
+
+    <h2>intended result</h2>
+    <video muted class="videoPlayer">
+        <source src="assets/video.mp4" type="video/mp4">
+    </video>
+</body>
+
+</html>

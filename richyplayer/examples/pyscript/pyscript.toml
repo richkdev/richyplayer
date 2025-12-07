@@ -1,0 +1,5 @@
+packages = ["pygame-ce", "numpy", "opencv-python", "urllib3"]
+
+[files]
+"richyplayer.py" = ""
+"assets/video.mp4" = ""
