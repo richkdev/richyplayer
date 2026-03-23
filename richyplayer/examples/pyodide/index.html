@@ -11,6 +11,7 @@
             width: 480px;
             height: 480px;
             border: 1px black solid;
+            image-rendering: pixelated;
         }
     </style>
 </head>
@@ -21,17 +22,17 @@
     <h2>pyodide on canvas element (slower FPS, override audio applied)</h2>
     <canvas class="videoPlayer" id="canvas"></canvas>
 
-    <h2>HTMLVideoElement (intended result, no override audio applied)</h2>
+    <h2>HTMLVideoElement (intended result)</h2>
     <video controls class="videoPlayer">
         <source src="assets/video.mp4" type="video/mp4">
     </video>
 </body>
 
-<script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.29.3/full/pyodide.js"></script>
 <script>
     (async () => {
-        // pygame-ce got temporarily removed in 0.28.0 so im using 0.27.7 
         const pyodide = await loadPyodide();
+        pyodide._api._skip_unwind_fatal_error = true;
 
         let canvas = document.getElementById("canvas");
         pyodide.canvas.setCanvas2D(canvas);
@@ -49,7 +50,7 @@
         +  * @param {string} path
         +  * @param {string} new_path
         +  * @param {string} file_encoding
-        +  * @return {boolean}
+        +  * @return {Promise<undefined>}
         +  */
         async function fetch_and_move(path, new_path, file_encoding) {
             let res = await fetch(path);
