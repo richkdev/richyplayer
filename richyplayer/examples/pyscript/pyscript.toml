@@ -1,4 +1,4 @@
-packages = ["pygame-ce", "numpy", "opencv-python", "urllib3"]
+packages = ["pygame-ce", "numpy", "opencv-python"]
 
 [files]
 "richyplayer.py" = ""

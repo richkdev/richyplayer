@@ -20,7 +20,7 @@ put this in your cli: `pip install git+https://github.com/richkdev/richyplayer.g
 
 ### web
 
-put the entire `richyplayer` folder inside the the root folder as your main.py[[3]](#notes)
+put the entire `richyplayer` folder inside the the root folder as your main.py
 
 BEFORE:
 
@@ -59,7 +59,7 @@ check `richyplayer/examples/` for examples on how to use the `richyplayer`
 ## notes
 
 1. <span id="note1">original video's audio can't be played on all supported web platforms. the workaround is to play the put the audio in a different file - whether it be local or web - and pass the path to the `override_audio_source` param in `VideoPlayer.open()`.</span>
-2. <span id="note2">not all javascript runtimes support webassembly's stack switching, such as firefox's spidermonkey. this causes the `richyplayer` to currently only work on browsers that use the v8 runtime, specifically when using it via pyodide or pyscript.</span>
+2. <span id="note2">on pyodide, pass enableRunUntilComplete: false to loadPyodide so that the old no-op behavior is enabled.</span>
 
 ## references
 

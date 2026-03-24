@@ -21,7 +21,7 @@ def newPath(relPath: str):
     return os.path.join(basePath, relPath)
 
 VIDEO = "video.mp4" if richyplayer.IS_PYODIDE else "richyplayer\\examples\\pyodide\\assets\\video.mp4"
-AUDIO = "override.mp3" if richyplayer.IS_PYODIDE else "richyplayer\\examples\\pyodide\\assets\\override.mp3"
+AUDIO = "assets\\override.mp3" if richyplayer.IS_PYODIDE else "richyplayer\\examples\\pyodide\\assets\\override.mp3"
 
 async def main():
     player = richyplayer.VideoPlayer()

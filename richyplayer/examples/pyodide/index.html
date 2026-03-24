@@ -22,7 +22,7 @@
     <h2>pyodide on canvas element (slower FPS, override audio applied)</h2>
     <canvas class="videoPlayer" id="canvas"></canvas>
 
-    <h2>HTMLVideoElement (intended result)</h2>
+    <h2>intended result</h2>
     <video controls class="videoPlayer">
         <source src="assets/video.mp4" type="video/mp4">
     </video>
@@ -31,8 +31,9 @@
 <script src="https://cdn.jsdelivr.net/pyodide/v0.29.3/full/pyodide.js"></script>
 <script>
     (async () => {
-        const pyodide = await loadPyodide();
-        pyodide._api._skip_unwind_fatal_error = true;
+        const pyodide = await loadPyodide({
+            enableRunUntilComplete: false   // needs the old no-op behavior
+        });
 
         let canvas = document.getElementById("canvas");
         pyodide.canvas.setCanvas2D(canvas);
@@ -40,8 +41,7 @@
         await pyodide.loadPackage([
             "numpy",
             "opencv-python",
-            "pygame-ce",
-            "urllib3"
+            "pygame-ce"
         ]);
 
         pyodide.globals.set("baseURL", location.href.substring(0, location.href.lastIndexOf("/")) + "/");

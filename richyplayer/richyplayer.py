@@ -24,17 +24,13 @@ AUDIO_EXTENSIONS: list[str] = ["mp3", "ogg", "wav"]
 EMPTY_AUDIO_PATH: str = "https://rawcdn.githack.com/richkdev/richyplayer/tree/main/richyplayer/assets/empty.ogg" # TODO: make it so that only web platforms will download from the repo, while non-web will use local copy
 
 if IS_WEB:
-    if IS_PYGBAG and not pygame.mixer.get_init():
-        if False:
-            # this is temporary, due to the snippet below not functioning properly on latest pygbag
-            pygame.mixer.pre_init(frequency=44100, size=16, channels=2, buffer=512)
-            pygame.mixer.init()
-            pygame.mixer.set_num_channels(64)
+    if IS_PYGBAG or not pygame.mixer.get_init():
+        pygame.mixer.pre_init(frequency=44100, size=16, channels=2, buffer=512)
+        pygame.mixer.init()
+        pygame.mixer.set_num_channels(64)
 
     if IS_PYODIDE:
-        import urllib3
-        POOLMGR = urllib3.PoolManager()
-
+        from pyodide.http import pyfetch # type: ignore
         from pyodide.code import run_js  # type: ignore
 else:
     from moviepy import VideoFileClip
@@ -58,7 +54,7 @@ class VideoPlayer:
         self.override_audio_source: Path | None
         self.remove_dir: bool
 
-        self.audio_data: str | bytes = b""
+        self.audio_data: str | bytes
 
     def __repr__(self) -> str:
         return f"{__name__}.{type(self).__name__}(path=\"{self.path}\", has_audio={self.has_audio}, override_audio_source={self.override_audio_source})"
@@ -74,7 +70,7 @@ class VideoPlayer:
         self.path = Path(path)
         self.tmp_dir = Path(tmp_dir)
         self.has_audio = has_audio
-        self.override_audio_source = Path(override_audio_source) if override_audio_source is not None else None
+        self.override_audio_source = Path(override_audio_source) if override_audio_source != None else None
         self.remove_dir = remove_dir
 
         if not IS_WEB and not self.tmp_dir.exists():
@@ -92,14 +88,14 @@ class VideoPlayer:
         self.total_frames = int(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
 
         if self.has_audio:
-            if self.override_audio_source is None:
+            if self.override_audio_source == None:
                 # use the original video's audio
                 if not IS_WEB:
                     # file is local
                     tmp_audio = self.tmp_dir.joinpath(f"{self.path.stem}.mp3")
 
                     with VideoFileClip(tmp_video if self._isURL(self.path) else self.path) as clip:
-                        if clip.audio is not None:
+                        if clip.audio != None:
                             clip.audio.write_audiofile(tmp_audio)
                         else:
                             tmp_audio = await self.fetch(EMPTY_AUDIO_PATH, self.tmp_dir)
@@ -119,11 +115,13 @@ class VideoPlayer:
                         )
             elif isinstance(self.override_audio_source, Path):
                 if self._isURL(self.override_audio_source):
-                    # check if audio is a URL
                     self.audio_data = await self.fetch(self.override_audio_source, self.tmp_dir)
                 else:
-                    # if not a URL and is local file
-                    self.audio_data = str(self.override_audio_source)
+                    if IS_PYODIDE:
+                        self.audio_data = await self._fetch_pyodide(str(self.override_audio_source))
+                    else:
+                        # for pygbag
+                        self.audio_data = str(self.override_audio_source)
             else:
                 raise TypeError
         else:
@@ -144,37 +142,38 @@ class VideoPlayer:
         url: Path | str,
         tmp_dir: Path,
     ) -> str | bytes:
-        url = self._urlify(url)
-        tmp_path = tmp_dir.joinpath(Path(url).name)
-
         if self._isURL(url):
-            if not IS_WEB:
+            url = self._urlify(url)
+            tmp_path = tmp_dir.joinpath(Path(url).name)
+
+            if IS_WEB:
+                if IS_PYODIDE:
+                    return await self._fetch_pyodide(url)
+                else:
+                    async with platform.fopen(url, "rb") as data: # type: ignore
+                        data.rename_to(tmp_path)
+            else:
                 # slightly modified ver of https://stackoverflow.com/a/76628270
                 response = get(url=url, stream=True)
                 response.raise_for_status()
                 with open(tmp_path, "wb") as data:
                     for chunk in response.iter_content(chunk_size=1024):
                         data.write(chunk)
-            else:
-                if not IS_PYODIDE:
-                    async with platform.fopen(url, "rb") as data: # type: ignore
-                        data.rename_to(tmp_path)
-                else:
-                    return self._fetch_pyodide(url)
             return str(tmp_path)
         else:
             raise FileNotFoundError("File is not a URL.")
 
     @staticmethod
-    def _fetch_pyodide(path: str) -> bytes:
-        resp = POOLMGR.request("GET", path, preload_content=False)
-        if resp.status == 200:
-            data = resp.read()
+    async def _fetch_pyodide(path: str) -> bytes: # bytes is not the actual data type
+        resp = await pyfetch(str(path))
+        resp.raise_for_status()
+        if resp.ok:
+            buff = await resp.buffer()
             print(f"Data at {path} downloaded successfully.")
+            data = buff.to_bytes()
         else:
             data = b""
             print(f"Failed to download data at {path}. Status code: {resp.status}")
-        resp.release_conn()
         return data
 
     @staticmethod
@@ -211,9 +210,12 @@ class VideoPlayer:
                     if self.override_audio_source.stem+"."+ex == self.override_audio_source.name:
                         # will fail if there hasnt been any user interaction after loading
                         run_js(f"""
-                            const audioBlob = new Blob([new Uint8Array({list(self.audio_data)})], {{ type: 'audio/{ex}' }});
-                            const audioUrl = URL.createObjectURL(audioBlob);
-                            const audio = new Audio(audioUrl);
+                            const data = new Uint8Array({str(list(self.audio_data))});
+                            console.log(data);
+                            const blob = new Blob([data], {{type: 'audio/{ex}'}});
+                            const path = URL.createObjectURL(blob);
+                            const audio = new Audio(path);
+                            console.log(path);
                             audio.play();
                         """)
 
