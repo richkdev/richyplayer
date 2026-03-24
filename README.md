@@ -69,8 +69,6 @@ references when using the `richyplayer`
   * <https://pyga.me/docs/> (make sure to check when a specific pygame-ce feature was added/removed/modified)
 * opencv-python
   * <https://docs.opencv.org/4.10.0/d6/d00/tutorial_py_root.html>
-* urllib3
-  * <https://urllib3.readthedocs.io/en/2.2.3/>
 * pygbag
   * <https://github.com/pygame-web/pygbag>
   * <https://pygame-web.github.io/>
