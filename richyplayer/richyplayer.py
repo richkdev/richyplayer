@@ -16,7 +16,7 @@ from warnings import warn
 
 IS_WEB: bool = sys.platform in ('emscripten', 'wasi')
 IS_DESKTOP: bool = not IS_WEB
-IS_PYGBAG: bool = os.getenv('PYGBAG') == '1'
+IS_PYGBAG: bool = bool(int(os.getenv('PYGBAG', default=0)))
 IS_PYODIDE: bool = 'pyodide' in sys.modules # includes pyscript since they use pyodide as well
 IS_PYSCRIPT: bool = 'pyscript' in sys.modules
 
