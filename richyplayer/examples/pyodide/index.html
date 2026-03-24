@@ -53,9 +53,9 @@
         +  * @return {Promise<undefined>}
         +  */
         async function fetch_and_move(path, new_path, file_encoding) {
-            let res = await fetch(path);
-            let data = await res.bytes();
-
+            const response = await fetch(path);
+            const res = await response.arrayBuffer();
+            let data = new Uint8Array(res);
             pyodide.FS.writeFile(new_path, data, { encoding: file_encoding });
 
             return pyodide.runPython(`
